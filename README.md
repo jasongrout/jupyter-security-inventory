@@ -59,8 +59,7 @@ repository page shows how it does. There are five for now:
 ## Caveats
 
 - **Repository type, and security boundary come from a language model**
-- Download counts include CI. When a site refuses to give a count, the count from the last run is kept and shown
-  with the day it was counted.
+- Download counts include CI.
 - A package is found only through a repository of this inventory.
 - Images: ghcr.io is not covered, Quay has no pull counts, and one tag is recorded per image: `latest`, or the newest.
   The namespaces are listed by hand in `scripts/4_images.py`. Many older images match no repository.
