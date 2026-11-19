@@ -27,3 +27,14 @@ def test_only_a_rate_limit_refusal_waits_for_the_reset():
     assert 1 < wait(429, 3) <= 3
     assert wait(429, 3600) == retry.retry_after_max
     assert wait(503, 3) is None
+
+
+def test_retries_are_counted_by_site_and_reason_but_redirects_are_not(monkeypatch):
+    monkeypatch.setattr(common, "RETRIES", common.Counter())
+    retry = common.HTTP.connection_pool_kw["retries"]
+    pool = urllib3.HTTPSConnectionPool("example.org")
+    retry = retry.increment("GET", "/", response=urllib3.HTTPResponse(status=429), _pool=pool)
+    retry = retry.increment("GET", "/", error=urllib3.exceptions.ProtocolError(), _pool=pool)
+    redirect = urllib3.HTTPResponse(status=302, headers={"Location": "/elsewhere"})
+    retry.increment("GET", "/", response=redirect, _pool=pool)
+    assert common.RETRIES == {"example.org HTTP 429": 1, "example.org ProtocolError": 1}
