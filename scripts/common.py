@@ -95,7 +95,7 @@ class Retry(urllib3.Retry):
         # Counted as each retry happens, so a stalled run still shows what it waits for.
         host = _pool.host if _pool else "?"
         retry = super().increment(method, url, response, error, _pool, _stacktrace)  # raises when none are left
-        if error is not None or response.status in self.status_forcelist:  # not a redirect
+        if error is not None or response.status in self.status_forcelist:  # urllib3 calls this for redirects too
             reason = type(error).__name__ if error is not None else f"HTTP {response.status}"
             with RETRIES_LOCK:
                 RETRIES[f"{host} {reason}"] += 1

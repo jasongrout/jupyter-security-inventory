@@ -95,7 +95,7 @@ def npm_bulk_downloads(names: list[str]) -> dict[str, int | None]:
         batch = names[start : start + 128]
         url = "https://api.npmjs.org/downloads/point/last-month/" + ",".join(quote(name) for name in batch)
         body = fetch_json(url, delay=NPM_DOWNLOADS_DELAY) or {}
-        if len(batch) == 1:  # for one name, npm answers with that package's counts, not a mapping
+        if len(batch) == 1:  # for one name, npm answers with that package's counts
             body = {batch[0]: body}
         counts |= {name: (body.get(name) or {}).get("downloads") for name in batch}  # null: no such package
     return counts

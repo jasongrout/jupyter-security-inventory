@@ -49,7 +49,7 @@ def test_download_json_waits_for_a_rate_limit_reset_and_counts_the_retries(monke
     url = f"http://127.0.0.1:{server.server_port}"
     try:
         assert common.download_json(f"{url}/limited", delay=0) == 1
-        assert any(1 < wait <= 3 for wait in waits)  # until the reset, not urllib3's immediate first retry
+        assert any(1 < wait <= 3 for wait in waits)  # waited until the reset
         waits.clear()
         with pytest.raises(urllib3.exceptions.MaxRetryError):
             common.download_json(f"{url}/down", delay=0)
