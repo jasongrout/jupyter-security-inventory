@@ -13,12 +13,10 @@ Usage: python scripts/3_packages.py    Output: output/packages.json
 """
 
 import re
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import PurePosixPath
 
-import urllib3
 from common import OUTPUT, Progress, fetch_json, github_repos_in, load_json, pep503, quote, retries, save_json
 
 
@@ -216,16 +214,6 @@ def main():
     start = took(f"deps.dev and publishing of {len(packages)} packages", start)
 
     counted = Progress("downloads", len(packages))
-    last_run = load_json(OUTPUT / "packages.json")["accepted"] if (OUTPUT / "packages.json").exists() else []
-    last_counts = {(p["system"], p["name"]): p["downloads_last_month"] for p in last_run}
-
-    def count(system, name):
-        try:
-            return downloads(system, name)
-        except urllib3.exceptions.HTTPError as error:
-            # A site that keeps refusing would stop the whole daily update, so one stale count is the better loss.
-            print(f"\nkept the last run's downloads of {name}: {error}", file=sys.stderr, flush=True)
-            return last_counts.get((system, name))
 
     def count_downloads(system):
         since = time.perf_counter()
@@ -234,7 +222,7 @@ def main():
         bulk = npm_bulk_downloads(unscoped)
         for package in mine:
             name = package["name"]
-            package["downloads_last_month"] = bulk[name] if name in bulk else count(system, name)
+            package["downloads_last_month"] = bulk[name] if name in bulk else downloads(system, name)
             counted.tick()
         return time.perf_counter() - since
 
