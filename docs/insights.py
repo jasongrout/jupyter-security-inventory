@@ -190,6 +190,14 @@ def image_cell(ref: str | None) -> str:
     return f"[]{{.fa-brands .fa-docker}} {image_link(registry, path)}"
 
 
+def as_of(package: dict, day: str | None) -> str:
+    """' (as of 2026-11-18)' when the package's download count is older than the inventory's day, else ''."""
+    on = package.get("downloads_counted_on", day)  # a count from before step 3 kept the day has no key: not flagged
+    if package["downloads_last_month"] is None or on == day:
+        return ""
+    return f" (as of {on})" if on else " (from an earlier run)"
+
+
 def stats(top: str | None, count: str) -> str:
     """A download count that links to its history: pypistats.org for PyPI, npm-stat.com for npm."""
     if not top or not count:
@@ -269,8 +277,11 @@ class Table:
 class Data:
     """Everything in output/, with the few facts the pages derive from it."""
 
+    fetched_on = None  # the inventory's day
+
     def __init__(self):
         dataset = load("jupyter_repos.json")
+        self.fetched_on = dataset["fetched_on"]
         self.repos = {repo["full_name"]: repo for repo in dataset["repos"]}
         self.scan = load("scan.json")
         self.images = load("images.json")["images"]
@@ -377,10 +388,11 @@ def package_table(data: Data, system: str, names) -> Table:
         [p["name"], data.repos[name]["org"], name, p["downloads_last_month"], p["dependents"], p["last_published"]]
         for name, p in found
     ]
-    return Table(PACKAGE_HEADER, rows, [package_cells(system, row) for row in rows])
+    cells = [package_cells(system, row, as_of(p, data.fetched_on)) for row, (_, p) in zip(rows, found)]
+    return Table(PACKAGE_HEADER, rows, cells)
 
 
-def package_cells(system: str, row: list) -> list:
+def package_cells(system: str, row: list, note: str = "") -> list:
     """A row of a package table with links to the package, its organization and its repo."""
     name, org, repo, downloads, dependents, last_published = row
     key = f"{system}:{name}"
@@ -388,7 +400,7 @@ def package_cells(system: str, row: list) -> list:
         f"[{plain(name)}]({registry_url(key)})",
         org_link(org),
         link(repo),
-        stats(key, n(downloads)),
+        stats(key, n(downloads)) + note,
         n(dependents),
         date(last_published),
     ]
@@ -716,7 +728,7 @@ def repo_page(data: Data, name: str) -> str:
         sha=repo["content"]["commit"],
         fork=" · fork" if repo["is_fork"] else "",
         packages="; ".join(
-            f"{package(p['system'] + ':' + p['name'])}, {stats(p['system'] + ':' + p['name'], n(p['downloads_last_month']))} downloads/month,"
+            f"{package(p['system'] + ':' + p['name'])}, {stats(p['system'] + ':' + p['name'], n(p['downloads_last_month']))} downloads/month{as_of(p, data.fetched_on)},"
             f" {n(p['dependents'])} dependents, last published {p['last_published'] or 'unknown'}"
             for p in repo["packages"]
         )

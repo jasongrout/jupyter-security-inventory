@@ -89,6 +89,14 @@ def test_package_table_has_the_values_and_the_links_of_a_package():
     ]
 
 
+def test_a_download_count_kept_from_an_earlier_run_shows_its_day():
+    package = {"downloads_last_month": 1234, "downloads_counted_on": "2026-11-18"}
+    assert insights.as_of(package, "2026-11-19") == " (as of 2026-11-18)"
+    assert insights.as_of(package | {"downloads_counted_on": "2026-11-19"}, "2026-11-19") == ""
+    assert insights.as_of(package | {"downloads_counted_on": None}, "2026-11-19") == " (from an earlier run)"
+    assert insights.as_of({"downloads_last_month": 1234}, "2026-11-19") == ""  # counted before the day was kept
+
+
 def test_image_table_leaves_unknown_pulls_and_repository_empty():
     image = {
         "registry": "quay.io",
