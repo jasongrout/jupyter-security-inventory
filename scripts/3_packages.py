@@ -32,7 +32,7 @@ def registry_entry(system: str, name: str) -> dict | None:
         people = [info.get(key) or "" for key in ("author", "author_email", "maintainer", "maintainer_email")]
         name = info["name"]
     else:
-        # Without a wait, 8 threads ask faster than npm allows, and it refuses us for minutes.
+        # Keeps the 8 threads under npm's rate limit, which locks us out for minutes once crossed.
         body = fetch_json(f"https://registry.npmjs.org/{quote(name)}/latest", delay=0.1)
         if not isinstance(body, dict) or "version" not in body:
             return None
@@ -75,7 +75,7 @@ def reason(repo: dict, system: str, entry: dict, declared: bool, jupyter_orgs: s
     return None
 
 
-# api.npmjs.org allows about 40 requests a minute, and its refusals don't say how long to wait, so we keep under it.
+# Keeps under api.npmjs.org's limit of about 40 requests a minute.
 NPM_DOWNLOADS_DELAY = 1.5
 
 

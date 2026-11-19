@@ -92,7 +92,7 @@ class Retry(urllib3.Retry):
         return min(max(waits), self.retry_after_max) or None  # None: no wait asked, so urllib3 backs off on its own
 
     def increment(self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None):
-        # Counted as each retry happens, not when the request ends, so a stalled run still shows what it waits for.
+        # Counted as each retry happens, so a stalled run still shows what it waits for.
         host = _pool.host if _pool else "?"
         retry = super().increment(method, url, response, error, _pool, _stacktrace)  # raises when none are left
         if error is not None or response.status in self.status_forcelist:  # not a redirect
@@ -114,8 +114,8 @@ HTTP = urllib3.PoolManager(
     maxsize=16,  # connections kept open per site: one per thread of the largest pool in step 3
     headers={"User-Agent": "jupyter-security-inventory"},
     timeout=60,
-    # Backs off 0, 4, 8, 16, 32 s, a minute in all, to outlast a minute-long rate limit that doesn't say how long to
-    # wait. A wait the server asks for is honored up to 5 minutes.
+    # Backs off 0, 4, 8, 16, 32 s, a minute in all, to outlast a minute-long rate limit. When the server asks for a
+    # wait, waits that long, up to 5 minutes.
     retries=Retry(total=5, backoff_factor=2, backoff_max=60, retry_after_max=300, status_forcelist=RETRY_ON),
 )
 
